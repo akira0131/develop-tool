@@ -51,7 +51,7 @@ function backupDatabase() {
             return 1
         fi
     fi
-    # バックアップ(テーブル定義+データ)
+    # バックアップ
     for ((i = 0; i < ${#db_list[@]}; i++)) {
         # データベース存在確認:
         #   バックアップ対象外の場合 => スキップ
@@ -62,32 +62,41 @@ function backupDatabase() {
                 fi
             }
         fi
-        # InnoDBテーブル以外のテーブル名取得
-        tbl_list=$(mysql ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} \
-                   -N -s -e "SELECT table_name
-                             FROM information_schema.TABLES
-                             WHERE TABLE_SCHEMA = '${db_list[i]}' AND engine NOT IN('InnoDB')")
-        # InnoDBテーブルしかないデータベースダンプ
-        if [ -z "$tbl_list" ]; then
-            mysqldump ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} ${db_list[i]} \
-            --single-transaction \
-            --default-character-set=binary \
-            > $backup_dir/${db_list[i]}.sql
-        # MyISAMテーブルを含むデータベースダンプ
-        else
-            mysqldump ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} ${db_list[i]} \
-            --lock-tables \
-            --default-character-set=binary \
-            > $backup_dir/${db_list[i]}.sql
+        # データベース定義
+        mysql ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} \
+        -N -s -e "SHOW CREATE DATABSE ${db_list[i]}\G" | grep "CREATE DATABASE" \
+        > $backup_dir/${db_list[i]}/database.sql
+        # テーブル定義, データ
+        if [ $? -eq 0 ]; then
+            # InnoDBテーブル以外のテーブル名取得
+            tbl_list=$(mysql ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} \
+                       -N -s -e "SELECT table_name
+                                 FROM information_schema.TABLES
+                                 WHERE TABLE_SCHEMA = '${db_list[i]}' AND engine NOT IN('InnoDB')")
+            # ダンプ
+            #   対象 => InnoDBテーブルしかないデータベース
+            if [ -z "$tbl_list" ]; then
+                mysqldump ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} ${db_list[i]} \
+                --single-transaction \
+                --default-character-set=binary \
+                > $backup_dir/${db_list[i]}/dump.sql
+            # ダンプ
+            #   対象 => MyISAMテーブルを含むデータベース
+            else
+                mysqldump ${db_host:+-h$db_host} ${db_user:+-u$db_user} ${db_pass:+-p$db_pass} ${db_list[i]} \
+                --lock-tables \
+                --default-character-set=binary \
+                > $backup_dir/${db_list[i]}/dump.sql
+            fi
         fi
         # ダンプファイル文字コードチェック
-        if [ $? = 0 ]; then
+        if [ $? -eq 0 ]; then
             # ファイルの文字コード
             # 変換:
             #   ****** => utf8
             encode=$(file -i $backup_dir/${db_list[i]}.sql | awk '{print $3}' | sed 's/charset=//g')
             if [ "$endode" != "uft8" ]; then
-                iconv -f $encode -t utf8 $backup_dir/${db_list[i]}.sql -o $backup_dir/${db_list[i]}.sql
+                iconv -f $encode -t utf8 $backup_dir/${db_list[i]}.sql -o $backup_dir/${db_list[i]}/dump.sql
             fi
             # ダンプ時の文字コード
             # 変換:
@@ -95,25 +104,26 @@ function backupDatabase() {
             cnt=$(cat $backup_dir/${db_list[i]}.sql | grep "SET NAMES binary" | wc -l)
             if [ $cnt -ge 1 ]; then
                 sed -i -e 's/SET NAMES binary/SET NAMES utf8/g' \
-                $backup_dir/${db_list[i]}.sql
+                $backup_dir/${db_list[i]}/dump.sql
             fi
         fi
         # ダンプファイル構文チェック
-        if [ $? = 0 ]; then
+        if [ $? -eq 0 ]; then
             # MySQL5.6以降に追加されたテーブル定義
             # 変換:
             #   STATS_PERSISTENT=0 => blank
             cnt=$(cat $backup_dir/${db_list[i]}.sql | grep "STATS_PERSISTENT=0" | wc -l)
             if [ $cnt -ge 1 ]; then
                 sed -i -e 's/STATS_PERSISTENT=0//g' \
-                $backup_dir/${db_list[i]}.sql
+                $backup_dir/${db_list[i]}/dump.sql
             fi
         fi
         # ダンプファイルアーカイブ
-        if [ $? = 0 ]; then
-            tar -zcf ${db_list[i]}.sql.tar.gz ${db_list[i]}.sql --remove-files -C $backup_dir
+        if [ $? -eq 0 ]; then
+            tar -zcf dump.sql.tar.gz $backup_dir/${db_list[i]}/dump.sql \
+            --remove-files -C $backup_dir/${db_list[i]}
         fi
-        if [ $? = 0 ]; then
+        if [ $? -eq 0 ]; then
             echo "[バックアップ]${db_list[i]}: [ OK ]"
         else
             echo "[バックアップ]${db_list[i]}: [ NG ]"
@@ -153,7 +163,7 @@ function restoreDatabase() {
         # データインポート
         tar -xf $file -O | \
         mysql ${db_host:+-h$db_host} ${db_user:+-u$db_user} $(basename $file .sql.tar.gz)
-        if [ $? = 0 ]; then
+        if [ $? -eq 0 ]; then
             echo "[リストア]$(basename $file .sql.tar.gz): [ OK ]"
         else
             echo "[リストア]$(basename $file .sql.tar.gz): [ NG ]"
