@@ -1,0 +1,3 @@
+[submodule "src/github.com/meowmeowmeow0131/cli"]
+	path = src/github.com/meowmeowmeow0131/cli
+	url = https://meowmeowmeow0131@github.com/meowmeowmeow0131/cli.git
