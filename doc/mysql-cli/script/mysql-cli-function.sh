@@ -91,7 +91,7 @@ function backupDatabase() {
         #   ****** => utf8
         encode=$(file -i $backup_dir/${db_list[i]}/dump.sql | awk '{print $3}' | sed 's/charset=//g')
         if [ "$endode" != "uft8" ]; then
-            iconv -f $encode -t utf8 $backup_dir/${db_list[i]}.sql -o $backup_dir/${db_list[i]}/dump.sql
+            iconv -f $encode -t utf8 $backup_dir/${db_list[i]}/dump.sql -o $backup_dir/${db_list[i]}/dump.sql
         fi
         # ダンプ時の文字コード
         # 変換:
@@ -135,7 +135,7 @@ function restoreDatabase() {
     # リストア
     for file in $(find $restore_dir -maxdepth 2 -name 'dump.sql.tar.gz' | sort -r); do
         # リストア対象のデータベース名取得
-        backup_db_name=$(echo $file | awk -F "/" '{ print $(NF -1)}')
+        backup_db_name=$(echo $file | awk -F "/" '{print $(NF -1)}')
         # データベース存在確認:
         #   存在していた場合 => 削除
         for ((i = 0; i < ${#db_list[@]}; i++)) {
