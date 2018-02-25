@@ -1,3 +1,12 @@
 [submodule "src/github.com/meowmeowmeow0131/cli"]
 	path = src/github.com/meowmeowmeow0131/cli
 	url = https://meowmeowmeow0131@github.com/meowmeowmeow0131/cli.git
+[submodule "vendor/github.com/direnv/direnv"]
+	path = vendor/github.com/direnv/direnv
+	url = https://github.com/direnv/direnv.git
+[submodule "vendor/github.com/golang/dep"]
+	path = vendor/github.com/golang/dep
+	url = https://github.com/golang/dep.git
+[submodule "vendor/github.com/motemen/ghq"]
+	path = vendor/github.com/motemen/ghq
+	url = https://github.com/motemen/ghq.git

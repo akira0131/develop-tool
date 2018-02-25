@@ -1,0 +1,6 @@
+# Golang.gitignore
+bin/*
+!.keep
+
+pkg/
+
