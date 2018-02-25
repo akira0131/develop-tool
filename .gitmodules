@@ -1,6 +1,6 @@
-[submodule "src/github.com/meowmeowmeow0131/cli"]
-	path = src/github.com/meowmeowmeow0131/cli
-	url = https://meowmeowmeow0131@github.com/meowmeowmeow0131/cli.git
+[submodule "src/github.com/meowmeowmeow0131/mysql-cli"]
+	path = src/github.com/meowmeowmeow0131/mysql-cli
+	url = https://meowmeowmeow0131@github.com/meowmeowmeow0131/mysql-cli.git
 [submodule "vendor/github.com/direnv/direnv"]
 	path = vendor/github.com/direnv/direnv
 	url = https://github.com/direnv/direnv.git
